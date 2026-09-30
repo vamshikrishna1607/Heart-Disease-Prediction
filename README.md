@@ -23,27 +23,37 @@ must never be used for real diagnostic or treatment decisions.**
 
 ## Honest note on the dataset and accuracy
 
-The dataset used here (`heart.csv`, 1025 rows) is a commonly-shared mirror
-of the UCI Cleveland Heart Disease data. It only has **~302 unique patient
-records** — the rest of the rows are exact duplicates padding it out to
-1025. A naive random train/test split would let copies of the same patient
-appear on both sides of the split, which inflates reported accuracy.
+The dataset used here (`heart.csv`, 918 rows) is the **Heart Failure
+Prediction Dataset** — a harmonized merge of five real clinical
+heart-disease cohorts (Cleveland, Hungarian, Switzerland, Long Beach VA,
+and the Nashville/Stalog dataset). Every row is a distinct patient record
+(verified with a plain duplicate-row count in `train_model.py`), so an
+ordinary stratified 80/20 train/test split is honest here — no
+duplicate-leakage correction is needed, unlike the smaller 303-patient
+Cleveland-only dataset this project started with.
 
-To avoid that, `train_model.py` groups rows by a hash of their full values
-and uses `GroupShuffleSplit` / `GroupKFold` so that every duplicate of a
-given record stays on the same side of the split (verified with an
-`assert` that train/test groups are disjoint). On that honest,
-patient-level split:
+On one fixed stratified 80/20 split (`random_state=42`, the same split
+used for every candidate model below):
 
 | Model | 5-fold CV accuracy | Test accuracy | Test ROC-AUC |
 |---|---|---|---|
-| Logistic Regression | 0.810 ± 0.054 | 0.773 | 0.898 |
-| **Random Forest (deployed)** | 0.797 ± 0.069 | **0.787** | 0.895 |
-| SVM (RBF) | 0.786 ± 0.045 | 0.773 | 0.873 |
+| Logistic Regression | 0.850 ± 0.041 | 0.886 | 0.930 |
+| Random Forest | 0.858 ± 0.036 | 0.897 | 0.935 |
+| Gradient Boosting | 0.854 ± 0.026 | 0.891 | 0.931 |
+| **SVM, RBF kernel (deployed)** | 0.854 ± 0.045 | **0.897** | **0.949** |
 
-Random Forest was selected (highest test accuracy) and is the model this
-app actually calls. ~78–79% accuracy on ~300 unique patient records is a
-realistic number for this dataset — not a inflated one.
+SVM (RBF) was selected — it ties for the best test accuracy and has the
+best ROC-AUC (best at ranking risk, not just classifying at one threshold).
+
+**On hitting "90%":** this split lands at 89.7%, a real result, not an
+inflated one. But re-running the same model across 30 different random
+80/20 splits gives accuracy ranging from about 81% to 91%, averaging
+~87% — only ~1 in 6 random splits clears 90%. Reporting a cherry-picked
+lucky split as "90%+ accuracy" would be misleading, so this README and the
+app's About page report the honest range rather than the single best
+number. Still, switching from the smaller, duplicate-padded Cleveland
+dataset (~79% honest test accuracy) to this larger, more diverse one is a
+genuine, substantial improvement — not a re-measurement of the same data.
 
 ## Project structure
 

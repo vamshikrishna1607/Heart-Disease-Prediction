@@ -1,42 +1,61 @@
 {
-  "best_model": "random_forest",
+  "best_model": "svm_rbf",
   "results": {
     "logistic_regression": {
-      "cv_mean_accuracy": 0.8104499666053858,
-      "cv_std_accuracy": 0.05361496479848668,
-      "test_accuracy": 0.7729468599033816,
-      "test_roc_auc": 0.8977570093457944
+      "cv_mean_accuracy": 0.8501723977262138,
+      "cv_std_accuracy": 0.04115796461081475,
+      "test_accuracy": 0.8858695652173914,
+      "test_roc_auc": 0.9299378287900525
     },
     "random_forest": {
-      "cv_mean_accuracy": 0.7973326998684872,
-      "cv_std_accuracy": 0.06904344798955708,
-      "test_accuracy": 0.7874396135265701,
-      "test_roc_auc": 0.8950467289719627
+      "cv_mean_accuracy": 0.8583543006243592,
+      "cv_std_accuracy": 0.03570716521331712,
+      "test_accuracy": 0.8967391304347826,
+      "test_roc_auc": 0.9354375896700144
+    },
+    "gradient_boosting": {
+      "cv_mean_accuracy": 0.8542819867673097,
+      "cv_std_accuracy": 0.026151729598039453,
+      "test_accuracy": 0.8913043478260869,
+      "test_roc_auc": 0.9306551889048302
     },
     "svm_rbf": {
-      "cv_mean_accuracy": 0.7861850956738483,
-      "cv_std_accuracy": 0.045029608166391656,
-      "test_accuracy": 0.7729468599033816,
-      "test_roc_auc": 0.8734579439252337
+      "cv_mean_accuracy": 0.8542633491752867,
+      "cv_std_accuracy": 0.04473131191785853,
+      "test_accuracy": 0.8967391304347826,
+      "test_roc_auc": 0.9494261119081778
     }
   },
-  "features": [
-    "age",
-    "sex",
-    "cp",
-    "trestbps",
-    "chol",
-    "fbs",
-    "restecg",
-    "thalach",
-    "exang",
-    "oldpeak",
-    "slope",
-    "ca",
-    "thal"
+  "cat_features": [
+    "Sex",
+    "ChestPainType",
+    "RestingECG",
+    "ExerciseAngina",
+    "ST_Slope"
   ],
-  "dataset_rows_total": 1025,
-  "dataset_rows_unique": 302,
-  "train_rows": 818,
-  "test_rows": 207
+  "num_features": [
+    "Age",
+    "RestingBP",
+    "Cholesterol",
+    "FastingBS",
+    "MaxHR",
+    "Oldpeak"
+  ],
+  "features": [
+    "Sex",
+    "ChestPainType",
+    "RestingECG",
+    "ExerciseAngina",
+    "ST_Slope",
+    "Age",
+    "RestingBP",
+    "Cholesterol",
+    "FastingBS",
+    "MaxHR",
+    "Oldpeak"
+  ],
+  "dataset_rows_total": 918,
+  "dataset_duplicate_rows": 0,
+  "train_rows": 734,
+  "test_rows": 184
 }

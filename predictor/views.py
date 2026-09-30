@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 
 import joblib
+import pandas as pd
 from django.conf import settings
 from django.shortcuts import render
 
@@ -70,7 +71,11 @@ def predict(request):
                 )
             else:
                 try:
-                    features = [form.as_feature_row()]
+                    # The model's ColumnTransformer selects columns by name,
+                    # so a one-row DataFrame with matching column names is
+                    # required (a plain list/array would be silently
+                    # mis-mapped).
+                    features = pd.DataFrame([form.as_feature_dict()])
                     prediction = int(model.predict(features)[0])
                     probability = float(model.predict_proba(features)[0][1])
                     result = {

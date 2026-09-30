@@ -3,10 +3,11 @@ from django import forms
 
 class HeartDiseasePredictionForm(forms.Form):
     """
-    Captures the 13 clinical parameters used by the UCI Cleveland heart
-    disease dataset. Field-level validation and sane min/max bounds are
-    applied so obviously invalid clinical values are rejected before they
-    ever reach the model.
+    Captures the 11 clinical parameters used by the Heart Failure
+    Prediction dataset (a harmonized merge of the Cleveland, Hungarian,
+    Switzerland, Long Beach VA and Stalog heart-disease cohorts).
+    Field-level validation and sane min/max bounds are applied so obviously
+    invalid clinical values are rejected before they ever reach the model.
     """
 
     age = forms.IntegerField(
@@ -17,69 +18,61 @@ class HeartDiseasePredictionForm(forms.Form):
     )
     sex = forms.ChoiceField(
         label="Sex",
-        choices=[(1, "Male"), (0, "Female")],
+        choices=[("M", "Male"), ("F", "Female")],
         widget=forms.Select,
     )
-    cp = forms.ChoiceField(
+    chest_pain_type = forms.ChoiceField(
         label="Chest pain type",
         choices=[
-            (0, "Typical angina"),
-            (1, "Atypical angina"),
-            (2, "Non-anginal pain"),
-            (3, "Asymptomatic"),
+            ("TA", "Typical angina"),
+            ("ATA", "Atypical angina"),
+            ("NAP", "Non-anginal pain"),
+            ("ASY", "Asymptomatic"),
         ],
     )
-    trestbps = forms.IntegerField(
+    resting_bp = forms.IntegerField(
         label="Resting blood pressure (mm Hg)",
         min_value=60,
         max_value=250,
         widget=forms.NumberInput(attrs={"placeholder": "e.g. 130"}),
     )
-    chol = forms.IntegerField(
+    cholesterol = forms.IntegerField(
         label="Serum cholesterol (mg/dl)",
-        min_value=80,
+        min_value=0,
         max_value=700,
         widget=forms.NumberInput(attrs={"placeholder": "e.g. 246"}),
     )
-    fbs = forms.ChoiceField(
+    fasting_bs = forms.ChoiceField(
         label="Fasting blood sugar > 120 mg/dl",
         choices=[(1, "Yes"), (0, "No")],
     )
-    restecg = forms.ChoiceField(
+    resting_ecg = forms.ChoiceField(
         label="Resting ECG result",
         choices=[
-            (0, "Normal"),
-            (1, "ST-T wave abnormality"),
-            (2, "Left ventricular hypertrophy"),
+            ("Normal", "Normal"),
+            ("ST", "ST-T wave abnormality"),
+            ("LVH", "Left ventricular hypertrophy"),
         ],
     )
-    thalach = forms.IntegerField(
+    max_hr = forms.IntegerField(
         label="Max heart rate achieved",
         min_value=50,
         max_value=250,
         widget=forms.NumberInput(attrs={"placeholder": "e.g. 150"}),
     )
-    exang = forms.ChoiceField(
+    exercise_angina = forms.ChoiceField(
         label="Exercise-induced angina",
-        choices=[(1, "Yes"), (0, "No")],
+        choices=[("Y", "Yes"), ("N", "No")],
     )
     oldpeak = forms.FloatField(
         label="ST depression induced by exercise",
-        min_value=0.0,
+        min_value=-3.0,
         max_value=10.0,
         widget=forms.NumberInput(attrs={"placeholder": "e.g. 1.4", "step": "0.1"}),
     )
-    slope = forms.ChoiceField(
+    st_slope = forms.ChoiceField(
         label="Slope of peak exercise ST segment",
-        choices=[(0, "Upsloping"), (1, "Flat"), (2, "Downsloping")],
-    )
-    ca = forms.ChoiceField(
-        label="Number of major vessels colored by fluoroscopy",
-        choices=[(0, "0"), (1, "1"), (2, "2"), (3, "3"), (4, "4")],
-    )
-    thal = forms.ChoiceField(
-        label="Thalassemia",
-        choices=[(0, "Unknown"), (1, "Normal"), (2, "Fixed defect"), (3, "Reversible defect")],
+        choices=[("Up", "Upsloping"), ("Flat", "Flat"), ("Down", "Downsloping")],
     )
 
     def clean(self):
@@ -89,34 +82,36 @@ class HeartDiseasePredictionForm(forms.Form):
         silently feeding them to the model.
         """
         cleaned_data = super().clean()
-        thalach = cleaned_data.get("thalach")
+        max_hr = cleaned_data.get("max_hr")
         age = cleaned_data.get("age")
-        if thalach is not None and age is not None:
+        if max_hr is not None and age is not None:
             # A generous upper bound on achievable heart rate (220 - age is the
             # common estimate); flag values far outside anything plausible.
-            if thalach > (220 - age) + 40:
+            if max_hr > (220 - age) + 40:
                 self.add_error(
-                    "thalach",
+                    "max_hr",
                     "This max heart rate looks unusually high for the given age. "
                     "Please double-check the value.",
                 )
         return cleaned_data
 
-    def as_feature_row(self):
-        """Convert validated form data into the ordered feature list the model expects."""
+    def as_feature_dict(self):
+        """
+        Convert validated form data into the column-name-keyed dict the
+        model's ColumnTransformer expects (it selects columns by name, not
+        position, so this must match the training column names exactly).
+        """
         data = self.cleaned_data
-        return [
-            int(data["age"]),
-            int(data["sex"]),
-            int(data["cp"]),
-            int(data["trestbps"]),
-            int(data["chol"]),
-            int(data["fbs"]),
-            int(data["restecg"]),
-            int(data["thalach"]),
-            int(data["exang"]),
-            float(data["oldpeak"]),
-            int(data["slope"]),
-            int(data["ca"]),
-            int(data["thal"]),
-        ]
+        return {
+            "Age": int(data["age"]),
+            "Sex": data["sex"],
+            "ChestPainType": data["chest_pain_type"],
+            "RestingBP": int(data["resting_bp"]),
+            "Cholesterol": int(data["cholesterol"]),
+            "FastingBS": int(data["fasting_bs"]),
+            "RestingECG": data["resting_ecg"],
+            "MaxHR": int(data["max_hr"]),
+            "ExerciseAngina": data["exercise_angina"],
+            "Oldpeak": float(data["oldpeak"]),
+            "ST_Slope": data["st_slope"],
+        }
