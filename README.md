@@ -1,18 +1,19 @@
 # Heart Disease Risk Predictor
 
 A full Django web app that estimates a person's risk of heart disease from
-13 clinical measurements, using a scikit-learn model trained on the UCI
-Cleveland Heart Disease dataset.
+11 clinical measurements, using a scikit-learn model trained on the
+Heart Failure Prediction dataset (a harmonized merge of five real clinical
+heart-disease cohorts).
 
 **This is a portfolio / learning project. It is not a medical device and
 must never be used for real diagnostic or treatment decisions.**
 
 ## What it does
 
-- A form collects 13 clinical inputs (age, sex, chest pain type, resting
+- A form collects 11 clinical inputs (age, sex, chest pain type, resting
   blood pressure, cholesterol, fasting blood sugar, resting ECG, max heart
-  rate, exercise-induced angina, ST depression, ST slope, number of major
-  vessels, thalassemia).
+  rate, exercise-induced angina, ST depression, and the slope of the peak
+  exercise ST segment).
 - On submit, Django loads a pre-trained scikit-learn `Pipeline`
   (`StandardScaler` + classifier) and returns a risk label with an
   estimated probability.
