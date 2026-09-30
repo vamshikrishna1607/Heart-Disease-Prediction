@@ -1,0 +1,51 @@
+{% extends "predictor/base.html" %}
+
+{% block title %}Predict &middot; Heart Disease Risk Predictor{% endblock %}
+
+{% block content %}
+<h1>Heart Disease Risk Predictor</h1>
+<p class="lede">
+    Enter the 13 clinical measurements below and the model will estimate the
+    likelihood of heart disease, based on patterns learned from the UCI
+    Cleveland Heart Disease dataset.
+</p>
+
+<div class="disclaimer">
+    &#9888; This is a student/portfolio project, not a diagnostic tool. It is not
+    validated for clinical use and should never be used to make real medical
+    decisions. Always consult a qualified clinician.
+</div>
+
+{% if error_message %}
+<div class="alert alert-error">{{ error_message }}</div>
+{% endif %}
+
+{% if result %}
+<div class="result-card {% if result.prediction == 1 %}result-risk{% else %}result-ok{% endif %}">
+    <h2>{{ result.risk_label }}</h2>
+    <p class="probability">Estimated probability: <strong>{{ result.probability }}%</strong></p>
+    <p class="small">
+        Estimated by the {{ best_model|default:"trained" }} model
+        (see <a href="{% url 'predictor:about' %}">model card</a> for accuracy and limitations).
+    </p>
+</div>
+{% endif %}
+
+<form method="post" class="predict-form" novalidate>
+    {% csrf_token %}
+    <div class="form-grid">
+        {% for field in form %}
+        <div class="form-field {% if field.errors %}has-error{% endif %}">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+                <ul class="field-errors">
+                    {% for err in field.errors %}<li>{{ err }}</li>{% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    <button type="submit" class="btn-primary">Predict risk</button>
+</form>
+{% endblock %}

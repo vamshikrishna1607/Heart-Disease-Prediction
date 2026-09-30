@@ -1,0 +1,52 @@
+{% extends "predictor/base.html" %}
+
+{% block title %}About the model &middot; Heart Disease Risk Predictor{% endblock %}
+
+{% block content %}
+<h1>About this model</h1>
+
+<h2>Dataset</h2>
+<p>
+    Trained on the popular 1025-row "Heart Disease Dataset" mirror of the UCI
+    Cleveland Heart Disease data (13 clinical features + target). This file is
+    the original ~303-patient Cleveland dataset with rows duplicated to pad
+    it out &mdash; there are only about 302 distinct patient records in it.
+</p>
+<p>
+    To avoid inflated accuracy from duplicate rows leaking between training
+    and test data, the train/test split (and cross-validation folds) were
+    done at the <em>patient-record</em> level: every duplicate copy of the
+    same record is guaranteed to stay on the same side of the split. See
+    <code>train_model.py</code> in the repository for the exact methodology.
+</p>
+
+<h2>Model comparison</h2>
+<table class="metrics-table">
+    <thead>
+        <tr>
+            <th>Model</th>
+            <th>5-fold CV accuracy</th>
+            <th>Test accuracy</th>
+            <th>Test ROC-AUC</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for name, m in model_results.items %}
+        <tr {% if name == best_model %}class="best-row"{% endif %}>
+            <td>{{ name }}{% if name == best_model %} &#9733;{% endif %}</td>
+            <td>{{ m.cv_mean_accuracy|floatformat:3 }} &plusmn; {{ m.cv_std_accuracy|floatformat:3 }}</td>
+            <td>{{ m.test_accuracy|floatformat:3 }}</td>
+            <td>{{ m.test_roc_auc|floatformat:3 }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<p class="small">&#9733; = model currently deployed in this app.</p>
+
+<h2>Limitations</h2>
+<ul>
+    <li>The dataset has ~302 unique patient records &mdash; small by modern ML standards, so accuracy estimates have real uncertainty.</li>
+    <li>The data comes from a specific 1980s-era Cleveland Clinic patient population and may not generalize to other populations.</li>
+    <li>This app is for learning/demonstration purposes only and is not a validated clinical or diagnostic tool.</li>
+</ul>
+{% endblock %}

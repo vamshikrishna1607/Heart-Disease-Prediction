@@ -1,0 +1,42 @@
+{
+  "best_model": "random_forest",
+  "results": {
+    "logistic_regression": {
+      "cv_mean_accuracy": 0.8104499666053858,
+      "cv_std_accuracy": 0.05361496479848668,
+      "test_accuracy": 0.7729468599033816,
+      "test_roc_auc": 0.8977570093457944
+    },
+    "random_forest": {
+      "cv_mean_accuracy": 0.7973326998684872,
+      "cv_std_accuracy": 0.06904344798955708,
+      "test_accuracy": 0.7874396135265701,
+      "test_roc_auc": 0.8950467289719627
+    },
+    "svm_rbf": {
+      "cv_mean_accuracy": 0.7861850956738483,
+      "cv_std_accuracy": 0.045029608166391656,
+      "test_accuracy": 0.7729468599033816,
+      "test_roc_auc": 0.8734579439252337
+    }
+  },
+  "features": [
+    "age",
+    "sex",
+    "cp",
+    "trestbps",
+    "chol",
+    "fbs",
+    "restecg",
+    "thalach",
+    "exang",
+    "oldpeak",
+    "slope",
+    "ca",
+    "thal"
+  ],
+  "dataset_rows_total": 1025,
+  "dataset_rows_unique": 302,
+  "train_rows": 818,
+  "test_rows": 207
+}
