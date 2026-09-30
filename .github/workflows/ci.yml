@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Django system check
+        run: python manage.py check
+
+      - name: Run test suite
+        run: python manage.py test predictor -v 2
+
+      - name: Verify collectstatic works (production static config)
+        run: |
+          DJANGO_USE_MANIFEST_STATIC=true DJANGO_DEBUG=false DJANGO_ALLOWED_HOSTS=localhost \
+          python manage.py collectstatic --noinput

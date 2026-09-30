@@ -1,0 +1,74 @@
+name: Retrain model
+
+# Manual trigger, or automatic when the dataset or training script changes.
+# Never commits directly to main: it opens a PR only if the retrained
+# model is not a regression, so a human always reviews a model-behavior
+# change before it ships - this is the actual point of the workflow, not
+# just "automate the retrain."
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - "heart.csv"
+      - "train_model.py"
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Snapshot the current (baseline) metrics
+        run: cp predictor/ml_model/model_metrics.json /tmp/baseline_metrics.json
+
+      - name: Retrain
+        run: python train_model.py
+
+      - name: Check for a performance regression
+        run: |
+          python scripts/check_model_regression.py \
+            --baseline /tmp/baseline_metrics.json \
+            --candidate predictor/ml_model/model_metrics.json \
+            --tolerance 0.03
+
+      - name: Run the test suite against the retrained model
+        run: python manage.py test predictor -v 2
+
+      - name: Check whether anything actually changed
+        id: diff
+        run: |
+          if git diff --quiet -- predictor/ml_model/; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open a PR with the updated model
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: automated-retrain/${{ github.run_id }}
+          title: "Automated retrain: updated model artifact"
+          commit-message: "Retrain model on latest heart.csv / train_model.py"
+          body: |
+            Automated retrain triggered by a change to `heart.csv` or `train_model.py`.
+
+            The regression gate (`scripts/check_model_regression.py`, tolerance 3 percentage
+            points of test accuracy) passed and the full test suite passed against the
+            retrained model, but **this PR is not auto-merged** - a human should look at
+            the updated `predictor/ml_model/model_metrics.json` and confirm the new numbers
+            before this lands on `main`.
+          labels: automated-retrain

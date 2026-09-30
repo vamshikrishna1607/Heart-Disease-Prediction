@@ -56,17 +56,35 @@ number. Still, switching from the smaller, duplicate-padded Cleveland
 dataset (~79% honest test accuracy) to this larger, more diverse one is a
 genuine, substantial improvement — not a re-measurement of the same data.
 
+## CI/CD and MLOps
+
+This project has three GitHub Actions workflows, each doing a distinct job rather than one big "deploy" script:
+
+- **`ci.yml`** — on every push/PR to `main`: installs dependencies, runs `manage.py check`, runs the full test suite (`predictor/tests.py` — form validation, view behavior, and a sanity check on the committed model artifact itself), and verifies `collectstatic` succeeds under the production static-file config. This is the gate everything else depends on.
+- **`retrain.yml`** — manual trigger, or automatic when `heart.csv` or `train_model.py` changes on `main`. Retrains the model, then runs `scripts/check_model_regression.py`, which compares the new test accuracy against the currently-committed baseline and **fails the job if accuracy drops by more than 3 percentage points** — a regression never gets the chance to be merged, automated or not. If the retrain passes the gate and the test suite, it opens a **pull request** with the updated model artifact rather than committing straight to `main`; a human still reviews and merges. Automating the retrain doesn't mean automating away the judgment call about whether to ship it.
+- **`publish.yml`** — runs only after `ci.yml` succeeds on `main`, and builds + pushes the Docker image to GitHub Container Registry (`ghcr.io`) using the repo's own automatic `GITHUB_TOKEN` — no manually-managed registry credentials for anyone who forks this.
+
+Why a regression gate and a PR instead of straight-to-`main` auto-deploy: the entire point of automating retraining is to catch data/behavior drift early, not to remove the human decision of "is this model actually better." An automated pipeline that can silently ship a worse model isn't safer than doing it by hand — it's just a faster way to ship a worse model. The gate and the PR step are what make this an actual MLOps workflow rather than a script that happens to run on a schedule.
+
 ## Project structure
 
 ```
 heart-disease-prediction/
 ├── heart.csv                          # training data
 ├── train_model.py                     # trains & selects the model
+├── scripts/
+│   └── check_model_regression.py      # accuracy-regression gate used by retrain.yml
 ├── manage.py
+├── Dockerfile
+├── .github/workflows/
+│   ├── ci.yml                         # test on every push/PR
+│   ├── retrain.yml                    # gated retrain -> PR
+│   └── publish.yml                    # build & push image to GHCR after CI passes
 ├── heart_disease_prediction/          # Django project settings/urls
 └── predictor/                         # Django app
     ├── forms.py                       # HeartDiseasePredictionForm
     ├── views.py                       # predict() and about() views
+    ├── tests.py                       # form/view/model-artifact tests
     ├── urls.py
     ├── ml_model/
     │   ├── heart_model.joblib         # trained sklearn Pipeline
@@ -91,6 +109,12 @@ python3 manage.py runserver
 
 Then open http://127.0.0.1:8000/ in a browser.
 
+To run the test suite:
+
+```bash
+python3 manage.py test predictor -v 2
+```
+
 To retrain the model from scratch (e.g. after changing `heart.csv`):
 
 ```bash
@@ -100,7 +124,18 @@ python3 train_model.py
 This regenerates `predictor/ml_model/heart_model.joblib` and
 `model_metrics.json`.
 
+## Running it with Docker
+
+```bash
+docker build -t heart-disease-prediction .
+docker run -p 8000:8000 \
+  -e DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1 \
+  -e DJANGO_SECRET_KEY=some-real-secret-in-production \
+  heart-disease-prediction
+```
+
+The container runs with `DEBUG=false` and Gunicorn (not the dev server), and serves static files via WhiteNoise with hashed, compressed filenames — the same production-shaped config `ci.yml` verifies on every push (`DJANGO_ALLOWED_HOSTS` must be set or Django will reject all requests with 400s; `DJANGO_SECRET_KEY` has a dev-only fallback that should never be used for a real deployment).
+
 ## Tech stack
 
-Django 5, scikit-learn, pandas, numpy, joblib. No JavaScript framework —
-plain HTML/CSS templates.
+Django 5, scikit-learn, pandas, numpy, joblib, Gunicorn, WhiteNoise, Docker, GitHub Actions (CI, gated retraining, GHCR image publishing). No JavaScript framework — plain HTML/CSS templates.
